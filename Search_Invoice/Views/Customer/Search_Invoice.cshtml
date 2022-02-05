@@ -1,0 +1,373 @@
+﻿@{
+    Layout = "~/Views/Shared/_Danhmuc.cshtml";
+}
+string
+@section ContentHeader {
+    <div class="col-lg-3 col-md-4 col-sm-4 col-xs-12">
+        <h4 class="page-title">Tìm kiếm hóa đơn</h4>
+    </div>
+    <div class="col-lg-9 col-sm-8 col-md-8 col-xs-12">     
+        <ol class="breadcrumb">
+            <li><a href="/tim-kiem-invoice">Khách hàng</a></l i>
+            <li class="active">Tìm kiếm hóa đơn</li>
+        </ol>
+    </div>
+}
+@section BoxBody {
+    <form class="form" id="frmSearch">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label class="control-label" style="font-weight: 700;color: #268ecd">Từ ngày</label>
+                    <input class="form-control" type="date" value="2020-01-01" id="startdate" name="tu_ngay">
+                </div>
+            </div>
+            <!--/span-->
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label class="control-label" style="font-weight: 700;color: #268ecd">Đến ngày</label>
+                    <input class="form-control" type="date" value="2020-12-31" id="enddate" name="den_ngay">
+                </div>
+            </div>
+            <div class="col-md-3">
+                    <button type="button" id="btnSearch" class="btn btn-success" style="margin-top:26px"> <i class="fa fa-check"></i> Tìm kiếm</button>
+            </div>
+            <div class="col-md-3">
+                <input id="demo-input-search2" type="text" placeholder="Search ..." class="form-control" autocomplete="off" style="margin-top:26px">
+            </div>
+            <!--/span-->
+        </div>
+        
+    </form>
+    <hr />
+    <div class="row">
+        <div class="col-lg-12">
+            <table id="demo-foo-addrow" class="table table-bordered table-hover toggle-circle" data-page-size="7">
+                <thead style="background-color:#268ecd">
+                    <tr>
+                        <th data-sort-initial="true" data-toggle="true">Mẫu số</th>
+                        <th>Ký hiệu</th>
+                        <th data-hide="phone, tablet">Số</th>
+                        <th data-hide="phone, tablet">Ngày </th>
+                        <th data-hide="phone, tablet">Thành tiền</th>
+                        <th data-sort-ignore="true" class="min-width">Tải File</th>
+                    </tr>
+                </thead>
+               
+                <tbody>
+                    <!--Thêm boby của bảng vào đây-->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6">
+                            <div class="text-left">
+                                <ul class="pagination"></ul>
+                            </div>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script type="text/javascript">
+    $(document).ready(function () {
+        function getFormData($form) {
+            var unindexed_array = $form.serializeArray();
+            var indexed_array = {};
+
+            $.map(unindexed_array, function (n, i) {
+                indexed_array[n['name']] = n['value'];
+            });
+
+            return indexed_array;
+        }
+
+        $("#btnSearch").click(function () {
+
+            bootbox.dialog({
+                title: "Đang tìm kiếm hóa đơn ...",
+                message: "<p class='text-center' ><i style='font-size:350%;' class='fa fa-spin fa-spinner'></i></p>",
+                buttons: {
+                    cancel: {
+                        label: '<i class="fa fa-times"></i> Hủy',
+                        className: 'btn-danger',
+                        callback: function () {
+                            clearTimeout(interVal);
+                            bootbox.hideAll();
+                        }
+                    }
+                }
+            });
+            var interVal = setTimeout(function () {
+                var $form = $('#frmSearch');
+                var datapost = $form.serialize();
+
+                var model = getFormData($form);
+                var dataObject = JSON.stringify(model);
+
+                //$.get("/Customer/SaveEmployeeRecord", { id: '67', name: 'Deepak' }, function (data) {
+                //    alert(data.id);
+                //    alert(data.name);
+                //});
+
+                //$.ajax({
+                //    type: 'POST',
+                //    dataType: 'json',
+                //    url: '/Customer/GetInvoiceFromdateTodate',
+                //    //data: { id: '67', name: 'Deepak' },
+                //    data: dataObject,
+                //    success: function (data) {
+                //        alert(data.id);
+                //        alert(data.name);
+                //    },
+                //    error: function (XMLHttpRequest, textStatus, errorThrown) {
+
+                //    }
+                //});
+
+                $.ajax({
+                    type: 'POST',
+                    dataType: 'json',
+                    url: '/Customer/GetInvoiceFromdateTodate',
+                    data: model,
+                    success: function (result) {
+
+                        if (!result.hasOwnProperty("error")) {
+
+                            //$('#divInvoice').prop('hidden', false);
+                            $('#tblfoot').prop('hidden', false);
+                            $("#demo-foo-addrow tbody>tr").remove();
+
+                            for (var i = 0 ; i < result.data.length ; i++)
+                            {
+                                var tien = result.data[i].inv_TotalAmount == null ? '' : result.data[i].inv_TotalAmount.toLocaleString();
+                                $("#demo-foo-addrow").find('tbody')
+                                             .append('<tr><td>' + result.data[i].mau_hd + '</td><td>' + result.data[i].inv_invoiceSeries + '</td><td><a href="#" onClick = "PrintInvoicePDF(\'' + result.data[i].sobaomat.toString() + '\',\'' + result.data[i].mst.toString() + '\',\'PDF\');" data-toggle="tooltip" data-placement="top" title="In hóa đơn" >' + result.data[i].inv_invoiceNumber + '</a></td>' +
+                                             '<td>' + moment(result.data[i].inv_invoiceIssuedDate).format("DD/MM/YYYY") + '</td>' +
+                                             '<td>' + tien + '</td>' +
+                                             '<td><a href="#" onClick = "PrintInvoicePDF(\'' + result.data[i].sobaomat.toString() + '\',\'' + result.data[i].mst.toString() + '\',\'PDF\');" data-toggle="tooltip" data-placement="top" title="Dowload File PDF"><i class="fas fa-file-pdf text-info m-r-10"></i></button>' +
+                                             '<a href="#" onClick = "ExportZipXML(\'' + result.data[i].sobaomat.toString() + '\',\'' + result.data[i].mst.toString() + '\');" data-toggle="tooltip" data-placement="top" title="Dowload File .Zip XML"><i class="fas fa-file-archive text-danger m-r-10"></i></a>' +
+                                             '<a href="#" onClick = "PrintInvoicePDF(\'' + result.data[i].sobaomat.toString() + '\',\'' + result.data[i].mst.toString() + '\',\'Html\');" data-toggle="tooltip" data-placement="top" title="Dowload HTML"><i class="fab fa-html5 text-success"></i></a></td></tr>');
+                            }
+                            bootbox.hideAll();
+                            clearTimeout(interVal);
+                        }
+                        else {
+                            $("#demo-foo-addrow tbody>tr").remove();
+                            bootbox.hideAll();
+                            clearTimeout(interVal);
+                            bootbox.alert(result.error);
+                        }
+                    },
+                    error: function(req, status, errorObj) {
+                        // handle status === "timeout"
+                        // handle other errors
+
+                        bootbox.hideAll();
+                        clearTimeout(interVal);
+                        bootbox.alert(errorObj);
+                }
+                });
+            }, 1000);
+        });
+    });
+
+    </script>
+    <script>
+    function ExportZipXML(sbm, mst) {
+        bootbox.dialog({
+            title: "Đang Export hóa đơn File .Zip ...",
+            message: "<p class='text-center' ><i style='font-size:350%;' class='fa fa-spin fa-spinner'></i></p>",
+            buttons: {
+                cancel: {
+                    label: '<i class="fa fa-times"></i> Hủy',
+                    className: 'btn-danger',
+                    callback: function () {
+                        clearTimeout(interVal);
+                        bootbox.hideAll();
+                    }
+                }
+            }
+        });
+        var interVal = setTimeout(function () {
+            var model = '{ "sobaomat": "' + sbm + '", "masothue": "' + mst + '" }';
+            var kiki = JSON.parse(model);
+            console.log(kiki);
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/Tracuu2/ExportZipFileXML', true);
+            xhr.setRequestHeader("Content-type", "application/json;charset=UTF-8");
+            xhr.responseType = 'arraybuffer';
+            xhr.send(model);
+            xhr.onload = function () {
+                if (this.status === 200) {
+                    var filename = "";
+                    var disposition = xhr.getResponseHeader('Content-Disposition');
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                        var matches = filenameRegex.exec(disposition);
+                        if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+                    }
+                    var type = xhr.getResponseHeader('Content-Type');
+
+                    var blob = typeof File === 'function' ? new File([this.response], filename, {
+                        type: type
+                    }) : new Blob([this.response], {
+                        type: type
+                    });
+                    if (typeof window.navigator.msSaveBlob !== 'undefined') {
+                        window.navigator.msSaveBlob(blob, filename);
+                    } else {
+                        var URL = window.URL || window.webkitURL;
+                        var downloadUrl = URL.createObjectURL(blob);
+
+                        if (filename) {
+                            var a = document.createElement("a");
+                            if (typeof a.download === 'undefined') {
+                                bootbox.hideAll();
+                                clearTimeout(interVal);
+                                var newWindow = window.open('/');
+                                newWindow.onload = () => {
+                                    newWindow.location = downloadUrl;
+                                };
+                               // window.open(downloadUrl, '_blank');
+                            } else {
+                                bootbox.hideAll();
+                                clearTimeout(interVal);
+                                var newWindow = window.open('/');
+                                newWindow.onload = () => {
+                                    newWindow.location = downloadUrl;
+                                };
+                               // window.open(downloadUrl, '_blank');
+                            }
+                        } else {
+                            bootbox.hideAll();
+                            clearTimeout(interVal);
+                            var newWindow = window.open('/');
+                            newWindow.onload = () => {
+                                newWindow.location = downloadUrl;
+                            };
+                           // window.open(downloadUrl, '_blank');
+                        }
+
+                        //setTimeout(function () {
+                        //    bootbox.hideAll();
+                        //    clearTimeout(interVal);
+                        //    URL.revokeObjectURL(downloadUrl);
+                        //}, 100);
+                    }
+                } else {
+                    bootbox.hideAll();
+                    clearTimeout(interVal);
+                    //console.log(this.response);
+                    bootbox.alert("Có lỗi xảy ra !");
+                }
+            };
+        }, 1000);
+    }
+    </script>
+    <script>
+    function PrintInvoicePDF(sbm, mst, type) {
+        bootbox.dialog({
+            title: "Đang in hóa đơn ...",
+            message: "<p class='text-center' ><i style='font-size:350%;' class='fa fa-spin fa-spinner'></i></p>",
+            buttons: {
+                cancel: {
+                    label: '<i class="fa fa-times"></i> Hủy',
+                    className: 'btn-danger',
+                    callback: function () {
+                        clearTimeout(interVal);
+                        bootbox.hideAll();
+                    }
+                }
+            }
+        });
+
+        var interVal = setTimeout(function () {
+            var model = '{ "sobaomat": "' + sbm + '", "masothue": "' + mst + '","type":"' + type + '" }';
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/Tracuu2/PrintInvoice', true);
+            xhr.setRequestHeader("Content-type", "application/json;charset=UTF-8");
+            xhr.responseType = 'arraybuffer';
+            xhr.send(model);
+            xhr.onload = function () {
+                if (this.status === 200) {
+                    var filename = "";
+                    var disposition = xhr.getResponseHeader('Content-Disposition');
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                        var matches = filenameRegex.exec(disposition);
+                        if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+                    }
+                    var type = xhr.getResponseHeader('Content-Type');
+
+                    var blob = typeof File === 'function' ? new File([this.response], filename, {
+                        type: type
+                    }) : new Blob([this.response], {
+                        type: type
+                    });
+
+                    if (typeof window.navigator.msSaveBlob !== 'undefined') {
+                        window.navigator.msSaveBlob(blob, filename);
+                    } else {
+                        var URL = window.URL || window.webkitURL;
+                        var downloadUrl = URL.createObjectURL(blob);
+
+                        if (filename) {
+                            var a = document.createElement("a");
+                            if (typeof a.download === 'undefined') {
+                                bootbox.hideAll();
+                                clearTimeout(interVal);
+                                var newWindow = window.open('/');
+                                newWindow.onload = () => {
+                                    newWindow.location = downloadUrl;
+                                };
+                                 //var a = document.createElement("a");
+                                 //a.target = '_blank';
+                                 //document.body.appendChild(a);
+
+                                //a.href = downloadUrl;
+                                //var image = document.createElement('image');
+                                //image.src = 'data:image/bmp;base64,' + blob;
+                                //document.body.appendChild(image);
+
+                                //window.open(downloadUrl, '_blank');
+                            } else {
+                                bootbox.hideAll();
+                                clearTimeout(interVal);
+                                var newWindow = window.open('/');
+                                newWindow.onload = () => {
+                                    newWindow.location = downloadUrl;
+                                };
+                                //window.open(downloadUrl, '_blank');
+                            }
+                        } else {
+                            bootbox.hideAll();
+                            clearTimeout(interVal);
+                            var newWindow = window.open('/');
+                            newWindow.onload = () => {
+                                newWindow.location = downloadUrl;
+                            };
+                            //window.open(downloadUrl, '_blank');
+                        }
+
+                        //setTimeout(function () {
+                        //    URL.revokeObjectURL(downloadUrl);
+                        //    bootbox.hideAll();
+                        //    clearTimeout(interVal);
+                        //}, 100);
+                    }
+                } else {
+                    bootbox.hideAll();
+                    clearTimeout(interVal);
+                    //console.log(this.response);
+                    bootbox.alert("Có lỗi xảy ra !");
+                }
+            };
+        }, 1000);
+    }
+    </script>
+}
